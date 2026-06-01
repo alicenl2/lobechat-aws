@@ -1,0 +1,24 @@
+{
+	# Let's Encrypt expiry notices land here.
+	email alice.nodelanglois@gmail.com
+}
+
+# LobeChat — flush_interval -1 disables response buffering so SSE chat tokens
+# stream to the browser incrementally (Appendix A.4: streaming validation item).
+alicenl-lobechat.duckdns.org {
+	reverse_proxy localhost:47000 {
+		flush_interval -1
+	}
+}
+
+# Casdoor SSO. Caddy preserves the client Host header upstream by default, which
+# Casdoor needs so its OIDC issuer/redirects match the public hostname.
+alicenl-casdoor.duckdns.org {
+	reverse_proxy localhost:47002
+}
+
+# MinIO S3 API. Host header is preserved upstream so SigV4 presigned-URL
+# signatures (signed by lobe-chat for this exact host) validate at MinIO.
+alicenl-minio.duckdns.org {
+	reverse_proxy localhost:47005
+}

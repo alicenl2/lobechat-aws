@@ -1,0 +1,37 @@
+# EC2 production overrides.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.ec2.yml up -d
+#
+# Design notes:
+#  - Public traffic enters host Caddy on 443 and is reverse-proxied to the
+#    container ports (47000/47002/47005). The EC2 security group only opens
+#    22/80/443, so the app ports are unreachable from the internet.
+#  - Server-side calls from lobe-chat to Casdoor (OIDC) and MinIO (S3) use the
+#    SAME public hostnames the browser uses, but extra_hosts pins those names to
+#    the host gateway so the traffic loops back through Caddy ON-BOX (valid LE
+#    cert, no hair-pin out to the Elastic IP).
+#  - S3 endpoint == public domain so SigV4 signatures match the host the browser
+#    actually hits (mirrors the original localhost setup where they were equal).
+
+services:
+  lobe-chat:
+    environment:
+      - APP_URL=https://alicenl-lobechat.duckdns.org
+      - NEXTAUTH_URL=https://alicenl-lobechat.duckdns.org
+      - AUTH_URL=https://alicenl-lobechat.duckdns.org
+      - AUTH_CASDOOR_ISSUER=https://alicenl-casdoor.duckdns.org
+      - S3_ENDPOINT=https://alicenl-minio.duckdns.org
+      - S3_PUBLIC_DOMAIN=https://alicenl-minio.duckdns.org
+    extra_hosts:
+      - "alicenl-casdoor.duckdns.org:host-gateway"
+      - "alicenl-minio.duckdns.org:host-gateway"
+
+  minio:
+    environment:
+      - MINIO_API_CORS_ALLOW_ORIGIN=https://alicenl-lobechat.duckdns.org
+      - MINIO_SERVER_URL=https://alicenl-minio.duckdns.org
+
+  # Host-specific: requires /home/oriol/.ssh, which does not exist on EC2.
+  # Gated behind the 'local' profile so it never starts in the default up.
+  linux-sandbox:
+    profiles:
+      - local

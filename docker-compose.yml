@@ -70,8 +70,6 @@ services:
         condition: service_started
       minio:
         condition: service_healthy
-      vllm:
-        condition: service_healthy
 
   mcphub:
     build:
@@ -147,39 +145,6 @@ services:
       qdrant:
         condition: service_healthy
     restart: unless-stopped
-
-  vllm:
-    image: vllm/vllm-openai:gemma4
-    container_name: vllm
-    ports:
-      - "${VLLM_PORT:-47007}:8000"
-    environment:
-      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
-    volumes:
-      - ./data/huggingface:/root/.cache/huggingface
-    command: >
-      --model ${VLLM_MODEL_ID:-google/gemma-4-E4B-it}
-      --trust-remote-code
-      --max-model-len 32768
-      --dtype bfloat16
-      --gpu-memory-utilization 0.9
-      --enable-auto-tool-choice
-      --tool-call-parser gemma4
-      --reasoning-parser gemma4
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 300s
 
   minio:
     image: minio/minio:latest
