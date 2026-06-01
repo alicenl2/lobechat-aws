@@ -22,9 +22,6 @@ services:
     container_name: lobe-chat
     ports:
       - "${LOBECHAT_PORT:-47000}:3210"
-    volumes:
-      # HOTFIX: Patch MCP callTool to add session retry logic
-      - ./patches/route.js:/app/.next/server/app/(backend)/trpc/tools/[trpc]/route.js:ro
     environment:
       # App configuration
       - APP_URL=http://${HOST_DOMAIN:-localhost}:${LOBECHAT_PORT:-47000}

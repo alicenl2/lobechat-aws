@@ -3,14 +3,16 @@
 #
 # Design notes:
 #  - Public traffic enters host Caddy on 443 and is reverse-proxied to the
-#    container ports (47000/47002/47005). The EC2 security group only opens
-#    22/80/443, so the app ports are unreachable from the internet.
-#  - Server-side calls from lobe-chat to Casdoor (OIDC) and MinIO (S3) use the
-#    SAME public hostnames the browser uses, but extra_hosts pins those names to
-#    the host gateway so the traffic loops back through Caddy ON-BOX (valid LE
-#    cert, no hair-pin out to the Elastic IP).
-#  - S3 endpoint == public domain so SigV4 signatures match the host the browser
-#    actually hits (mirrors the original localhost setup where they were equal).
+#    container ports. The EC2 security group only opens 22/80/443 (+8443 for
+#    Casdoor), so the app ports are unreachable directly.
+#  - Casdoor is served on the lobechat hostname at :8443 (reusing the working
+#    Let's Encrypt cert) instead of its own subdomain — DuckDNS's CAA lookups
+#    were intermittently timing out on cert issuance for a 3rd hostname, so we
+#    avoid needing a separate cert. OIDC issuer = https://<lobechat-host>:8443.
+#  - Server-side OIDC + S3 calls stay on-box: extra_hosts pin the public
+#    hostnames to the host gateway (valid cert via Caddy), no hair-pin to the EIP.
+#  - LLM backend is a local Ollama (qwen2.5:3b) on the host — free, self-hosted,
+#    no API credit needed. lobe-chat reaches it via host.docker.internal.
 
 services:
   lobe-chat:
@@ -18,12 +20,17 @@ services:
       - APP_URL=https://alicenl-lobechat.duckdns.org
       - NEXTAUTH_URL=https://alicenl-lobechat.duckdns.org
       - AUTH_URL=https://alicenl-lobechat.duckdns.org
-      - AUTH_CASDOOR_ISSUER=https://alicenl-casdoor.duckdns.org
+      - AUTH_CASDOOR_ISSUER=https://alicenl-lobechat.duckdns.org:8443
       - S3_ENDPOINT=https://alicenl-minio.duckdns.org
       - S3_PUBLIC_DOMAIN=https://alicenl-minio.duckdns.org
+      # Local Ollama on the host (server-side fetch; see DB provider config)
+      - ENABLED_OLLAMA=1
+      - OLLAMA_PROXY_URL=http://host.docker.internal:11434
     extra_hosts:
+      - "alicenl-lobechat.duckdns.org:host-gateway"
       - "alicenl-casdoor.duckdns.org:host-gateway"
       - "alicenl-minio.duckdns.org:host-gateway"
+      - "host.docker.internal:host-gateway"
 
   minio:
     environment:
@@ -31,7 +38,6 @@ services:
       - MINIO_SERVER_URL=https://alicenl-minio.duckdns.org
 
   # Host-specific: requires /home/oriol/.ssh, which does not exist on EC2.
-  # Gated behind the 'local' profile so it never starts in the default up.
   linux-sandbox:
     profiles:
       - local

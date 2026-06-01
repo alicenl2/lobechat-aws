@@ -55,8 +55,11 @@ if [ "$SG_ID" = "None" ] || [ -z "$SG_ID" ]; then
 		--protocol tcp --port 80  --cidr "0.0.0.0/0" >/dev/null
 	aws ec2 authorize-security-group-ingress --region "$REGION" --group-id "$SG_ID" \
 		--protocol tcp --port 443 --cidr "0.0.0.0/0" >/dev/null
+	# 8443: Casdoor served on the lobechat hostname (see docker-compose.ec2.yml)
+	aws ec2 authorize-security-group-ingress --region "$REGION" --group-id "$SG_ID" \
+		--protocol tcp --port 8443 --cidr "0.0.0.0/0" >/dev/null
 	# Port 47000 is deliberately NOT opened — LobeChat is reachable only via Caddy.
-	echo "  $SG_ID (22 from ${MY_IP}/32, 80+443 public; 47000 closed)"
+	echo "  $SG_ID (22 from ${MY_IP}/32, 80+443+8443 public; 47000 closed)"
 else
 	echo "Security group $SG_NAME exists: $SG_ID"
 fi

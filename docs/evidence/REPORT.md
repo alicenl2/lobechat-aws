@@ -22,7 +22,7 @@
 | Field | Value |
 |---|---|
 | Student name | Alice Node-Langlois |
-| ESADE email | TODO |
+| ESADE email | alice.nodelanglois@alumni.esade.edu |
 | GitHub repo URL | https://github.com/alicenl2/lobechat-aws (must be **private**; user `joseporiolrius` invited as collaborator) |
 | Latest commit SHA | TODO (`git rev-parse HEAD`) |
 | Final tag | TODO (`final-vX.Y.Z`) |
@@ -66,9 +66,14 @@
 -->
 
 ```
-$ curl -sI https://TODO/
-TODO
+$ curl -sI https://alicenl-lobechat.duckdns.org/      # 2026-06-01T20:38:59Z, from laptop
+HTTP/2 307
+alt-svc: h3=":443"; ma=2592000
+date: Mon, 01 Jun 2026 20:39:00 GMT
+location: /chat
+via: 1.1 Caddy
 ```
+HTTP/2 over a valid Let's Encrypt/ZeroSSL cert, served via Caddy, redirecting to `/chat`.
 
 ## 6. Negative test — port 47000 closed
 
@@ -78,9 +83,14 @@ TODO
 -->
 
 ```
-$ curl -v --max-time 5 http://TODO:47000/
-TODO
+$ curl -v --max-time 6 http://52.31.85.106:47000/    # 2026-06-01, from laptop (EIP)
+*   Trying 52.31.85.106:47000...
+* Connection timed out after 6002 milliseconds
+* closing connection #0
+curl: (28) Connection timed out after 6002 milliseconds
 ```
+Port 47000 is not in the security group (only 22/80/443), so the LobeChat
+origin is unreachable directly — it is served only through Caddy on 443.
 
 ## 7. Stack runtime — `docker compose ps`
 
@@ -91,6 +101,17 @@ TODO
 -->
 
 ```
-$ docker compose ps
-TODO
+$ docker compose -f docker-compose.yml -f docker-compose.ec2.yml ps   # on EC2, 2026-06-01
+NAME              STATUS
+casdoor           Up 5 minutes
+hayhooks          Up 5 minutes
+hayhooks-mcp      Up 5 minutes
+lobe-chat         Up 5 minutes
+mcphub            Up 6 minutes
+minio             Up 6 minutes (healthy)
+qdrant            Up 6 minutes (healthy)
+shared-postgres   Up 6 minutes (healthy)
 ```
+Reverse proxy is host-level Caddy (`systemctl is-active caddy` → `active`),
+terminating TLS for all three DuckDNS hostnames on 443. vLLM is intentionally
+absent (no GPU; LobeChat uses OpenRouter as the LLM backend).

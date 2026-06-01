@@ -85,10 +85,13 @@ OPENAPI_MCP_HEADERS=
 ENVEOF
 
 # ── 7. Patch Casdoor seed data + config with the public HTTPS URLs ───────────
-sed -i "s|^origin = .*|origin = https://${CASDOOR_HOST}|" config/casdoor-app.conf
+# Casdoor is served on the lobechat hostname at :8443 (reuses the lobechat cert;
+# see Caddyfile + docker-compose.ec2.yml). Issuer/origin therefore use :8443,
+# while the OAuth callback stays on :443.
+sed -i "s|^origin = .*|origin = https://${LOBE_HOST}:8443|" config/casdoor-app.conf
 
 jq --arg cb "https://${LOBE_HOST}/api/auth/callback/casdoor" \
-   --arg org "https://${CASDOOR_HOST}" '
+   --arg org "https://${LOBE_HOST}:8443" '
 	(.applications[] | select(.name=="lobechat") | .redirectUris) = [$cb] |
 	(.applications[] | select(.name=="lobechat") | .origin)       = $org  |
 	(.webhooks[]     | select(.name=="webhook_default") | .url)   = "http://lobe-chat:3210/api/webhooks/casdoor"
@@ -108,34 +111,56 @@ fi
 mkdir -p data/postgres data/minio data/qdrant data/mcphub config/ssh
 
 # ── 9. DuckDNS: point all three subdomains at THIS instance (auto-detect IP) ──
+# NOTE: every command here is non-fatal (|| true). With a stable Elastic IP the
+# cron refresh is a nice-to-have; a hiccup must NOT abort the whole bootstrap.
 DUCKDNS_TOKEN=$(ssm_get DUCKDNS_TOKEN)
 echo "DUCKDNS_TOKEN=${DUCKDNS_TOKEN}" > /etc/lobechat-duckdns.env
 chmod 600 /etc/lobechat-duckdns.env
 cp infrastructure/duckdns-update.sh /usr/local/bin/duckdns-update.sh
 chmod +x /usr/local/bin/duckdns-update.sh
 DUCKDNS_TOKEN="$DUCKDNS_TOKEN" /usr/local/bin/duckdns-update.sh || true
-(crontab -l 2>/dev/null; \
- echo "*/5 * * * * . /etc/lobechat-duckdns.env && /usr/local/bin/duckdns-update.sh") | crontab -
+systemctl enable --now cron 2>/dev/null || true
+( (crontab -l 2>/dev/null || true); \
+  echo "*/5 * * * * . /etc/lobechat-duckdns.env && /usr/local/bin/duckdns-update.sh" ) \
+  | crontab - || true
 
-# ── 10. Wait for DNS to resolve to us BEFORE Caddy attempts ACME ─────────────
-MY_IP=$(curl -fsS https://checkip.amazonaws.com | tr -d '[:space:]')
-echo "this instance public IP = ${MY_IP}"
+# ── 10. Best-effort wait for DNS to point at us before Caddy attempts ACME ───
+# Bounded + non-fatal: Caddy retries ACME on its own, so this only trims the
+# number of failed early attempts. Never blocks the bootstrap for long.
+MY_IP=$(curl -fsS --max-time 10 https://checkip.amazonaws.com 2>/dev/null | tr -d '[:space:]' || true)
+echo "this instance public IP = ${MY_IP:-unknown}"
 for host in "$LOBE_HOST" "$CASDOOR_HOST" "$MINIO_HOST"; do
-	for i in $(seq 1 60); do
-		R=$(dig +short "$host" A | tail -1)
-		if [ "$R" = "$MY_IP" ]; then echo "DNS OK: $host -> $R"; break; fi
-		echo "waiting for DNS $host (got '${R:-none}', want ${MY_IP}) [$i/60]"
-		sleep 10
+	for i in $(seq 1 12); do
+		R=$(dig +short "$host" A 2>/dev/null | tail -1 || true)
+		if [ -n "$MY_IP" ] && [ "$R" = "$MY_IP" ]; then echo "DNS OK: $host -> $R"; break; fi
+		echo "waiting for DNS $host (got '${R:-none}', want ${MY_IP:-?}) [$i/12]"
+		sleep 5
 	done
 done
 
-# ── 11. Start Caddy (now ACME HTTP-01 will succeed) ──────────────────────────
+# ── 11. Start Caddy (ACME HTTP-01/ALPN; auto-retries until DNS is good) ──────
 cp infrastructure/Caddyfile /etc/caddy/Caddyfile
-systemctl enable caddy
+systemctl enable caddy 2>/dev/null || true
 systemctl restart caddy
+
+# ── 11b. Local LLM backend: Ollama on the host (CPU, free, no API credit) ────
+# lobe-chat reaches it via host.docker.internal (see docker-compose.ec2.yml).
+curl -fsSL https://ollama.com/install.sh | sh || true
+mkdir -p /etc/systemd/system/ollama.service.d
+printf '[Service]\nEnvironment=OLLAMA_HOST=0.0.0.0:11434\n' \
+  > /etc/systemd/system/ollama.service.d/override.conf
+systemctl daemon-reload || true
+systemctl restart ollama || true
+sleep 4
+ollama pull qwen2.5:3b || true   # tool-capable small model
 
 # ── 12. Launch the stack ─────────────────────────────────────────────────────
 docker compose -f docker-compose.yml -f docker-compose.ec2.yml up -d
+
+# ── 13. Post-login setup (per-user; run AFTER first Casdoor login) ───────────
+# Enabling the Ollama provider + registering the model + wiring MCP plugins into
+# LobeChat are per-user DB rows that require the user to exist (i.e. to have
+# logged in once). Run infrastructure/post-login-setup.sh after first login.
 
 echo "=== lobechat setup finished $(date -u +%FT%TZ) ==="
 touch /var/log/lobechat-setup.done

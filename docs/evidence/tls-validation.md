@@ -6,13 +6,17 @@ timestamped screenshot or a `tee`-captured command output. Identity binding:
 your ESADE email AND the public HTTPS URL must be visible in the same frame.
 
 - **Chosen solution**: Free dynamic-DNS (DuckDNS) + self-hosted Caddy on the EC2,
-  Let's Encrypt HTTP-01. Three subdomains on one Elastic IP:
+  Let's Encrypt / ZeroSSL (Caddy's defaults), on one Elastic IP (`52.31.85.106`):
   - `https://alicenl-lobechat.duckdns.org` → LobeChat
-  - `https://alicenl-casdoor.duckdns.org` → Casdoor SSO
+  - `https://alicenl-lobechat.duckdns.org:8443` → Casdoor SSO (OIDC issuer)
   - `https://alicenl-minio.duckdns.org` → MinIO S3 API
 - **Why DuckDNS** (per Appendix A.3): each `*.duckdns.org` label is its own
-  registered domain on the Let's Encrypt public-suffix list, so this deployment
-  gets its own LE rate-limit budget — no contention with classmates on demo day.
+  registered domain on the public-suffix list, so this deployment gets its own
+  CA rate-limit budget.
+- **Why Casdoor on `:8443` (same hostname) rather than its own subdomain**:
+  DuckDNS nameservers intermittently timed out on the CA's **CAA** lookup, making
+  a 3rd cert unreliable. Serving Casdoor on `:8443` reuses the working lobechat
+  cert and removes that dependency. OIDC issuer = `https://alicenl-lobechat.duckdns.org:8443`.
 
 ---
 
@@ -42,11 +46,12 @@ your ESADE email AND the public HTTPS URL must be visible in the same frame.
      security group (timeout); IP-on-443 has no matching Caddy site (TLS/host
      rejected). Paste both outputs. -->
 ```
-$ curl -v --max-time 5 http://<EIP>:47000/
-TODO (expect: connection timed out — security group blocks 47000)
+$ curl -v --max-time 6 http://52.31.85.106:47000/
+*   Trying 52.31.85.106:47000...
+* Connection timed out after 6002 milliseconds      # SG blocks 47000
 
-$ curl -sI --max-time 5 https://<EIP>/ --resolve dummy:443:<EIP>
-TODO (expect: TLS/host rejected — no Caddy site matches a bare IP)
+$ curl -sI --max-time 6 https://52.31.85.106/        # bare IP, no SNI match
+curl: (35) TLS connect error: tlsv1 alert internal error   # Caddy has no site for a bare IP -> rejected
 ```
 
 ### 6. Valid public certificate chain
@@ -55,8 +60,12 @@ TODO (expect: TLS/host rejected — no Caddy site matches a bare IP)
 $ echo | openssl s_client -connect alicenl-lobechat.duckdns.org:443 \
     -servername alicenl-lobechat.duckdns.org 2>/dev/null \
     | openssl x509 -noout -issuer -subject -dates
-TODO
+issuer=C=AT, O=ZeroSSL GmbH, CN=ZeroSSL ECC DV SSL CA 2
+subject=CN=alicenl-lobechat.duckdns.org
+notBefore=Jun  1 00:00:00 2026 GMT
+notAfter=Aug 30 23:59:59 2026 GMT
 ```
+Public CA (ZeroSSL), hostname matches, valid window. Casdoor `:8443` reuses this cert.
 - [ ] PASS — screenshot of browser cert panel: `tls-06-cert.png`
 
 ---

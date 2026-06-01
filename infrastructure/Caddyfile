@@ -11,8 +11,16 @@ alicenl-lobechat.duckdns.org {
 	}
 }
 
-# Casdoor SSO. Caddy preserves the client Host header upstream by default, which
-# Casdoor needs so its OIDC issuer/redirects match the public hostname.
+# Casdoor SSO — served on the lobechat hostname at :8443 (reuses the working
+# lobechat cert). DuckDNS CAA lookups intermittently timed out when issuing a
+# separate cert for the casdoor subdomain, so we avoid needing one. The OIDC
+# issuer is https://alicenl-lobechat.duckdns.org:8443.
+alicenl-lobechat.duckdns.org:8443 {
+	reverse_proxy localhost:47002
+}
+
+# (Optional) casdoor subdomain — kept for reference; not required since Casdoor
+# is reached via :8443 above. Will only get a cert if DuckDNS CAA cooperates.
 alicenl-casdoor.duckdns.org {
 	reverse_proxy localhost:47002
 }
