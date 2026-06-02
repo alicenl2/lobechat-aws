@@ -7,8 +7,8 @@
 | Student name | Alice Node-Langlois |
 | ESADE email | alice.nodelanglois@alumni.esade.edu |
 | GitHub repo URL | https://github.com/alicenl2/lobechat-aws (must be **private**; user `joseporiolrius` invited as collaborator) |
-| Latest commit SHA | 07d1c6d (version-bump commit; submission tag `final-v0.7.0`) |
-| Final tag | final-v0.7.0 |
+| Latest commit SHA | the `bump: 0.7.0 → 0.8.0` commit tagged `final-v0.8.0` (run `git rev-parse final-v0.8.0`) |
+| Final tag | final-v0.8.0 |
 
 ## 2. Public URL
 
