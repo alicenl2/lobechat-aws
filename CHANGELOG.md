@@ -71,3 +71,35 @@
 ### Feat
 
 - initial LobeChat local stack setup
+
+## final-v0.7.0 (2026-06-02)
+
+### Feat
+
+- **infra**: working EC2 deploy — Casdoor :8443, local Ollama, MCP, evidence
+- **infra**: EC2 deploy (OpenRouter, Caddy+DuckDNS HTTPS, SSM secrets)
+- **db**: flyway versioned migrations with secret-templated baseline
+- **mcp**: add linux-sandbox MCP server with persistent zellij shell
+- **vllm**: bump max-model-len 16384 → 32768
+- **mcp**: register five new MCP servers in MCPHub
+- **stack**: add Qdrant + Hayhooks vector RAG services
+- **vllm**: switch to Gemma 4 E4B-it with native function calling
+- **db**: add dbmate migration system with schema and seed support
+- **lobechat**: use OpenRouter for embeddings
+- **mcp**: add AWS Documentation MCP server
+- **mcp**: add AWS resources operations MCP server with test
+- **agents**: add generic screenshot service agent for lobe-chat-agents
+- add MCP server tests and enhance MCPHub configuration
+- add MCPHub integration with LobeChat hotfix
+- add vLLM local GPU inference with Gemma 3 270M model
+- initial LobeChat local stack setup
+
+### Fix
+
+- **lobechat**: suppress changelog modal and update-check redirect
+- **mcp**: mount ~/.aws for dynamic credential refresh
+- **playwright**: add output-dir and unrestricted file access
+
+### Refactor
+
+- centralize configuration and switch to OpenRouter
