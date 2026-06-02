@@ -1,20 +1,3 @@
-<!--
-  REPORT.md — Final Project evidence file.
-
-  Rules:
-  - Keep it ≤ 2 printed pages.
-  - All screenshots embedded inline (commit PNGs next to this file).
-  - All command outputs pasted as fenced code blocks, captured with `tee`
-    (not retyped). Keep timestamps visible.
-  - Identity binding: in every screenshot, your ESADE email AND the public
-    HTTPS URL must be visible in the same frame (browser tab, terminal
-    prompt, or watermark).
-  - URL must be reachable until 24 h after the exam day. Down = practical 0.
-  - Missing item = -5% on practical, each.
-
-  Replace every `TODO` and remove these HTML comments before submitting.
--->
-
 # Final Project — Evidence Report
 
 ## 1. Identity
