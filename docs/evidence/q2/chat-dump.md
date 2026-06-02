@@ -1,53 +1,37 @@
-NO_AI_USED
-<!--
-  chat-dump.md — AI declaration for Q2. MANDATORY FILE.
-
-  FIRST LINE OF THIS FILE IS THE MARKER. Position 0. Nothing before it.
-
-  Two valid states:
-
-  1) You did NOT use AI to produce a1.md
-     - Keep the literal string "NO_AI_USED" as the first line of the file.
-     - You can delete everything else below (including these comments).
-     - Done.
-
-  2) You DID use AI (any tool: ChatGPT, Claude, Gemini, Cursor, Copilot,
-     LobeChat itself, etc.)
-     - REPLACE the first line "NO_AI_USED" with the heading
-       "# Q2 — AI chat dump" (or any non-marker text).
-     - Below it, paste the full transcript(s) you used. One block per
-       session. Include: tool + model name, date/time UTC, full prompts,
-       full responses, one-line note on what you kept / changed /
-       rejected.
-     - Do not trim or paraphrase. Raw is better.
-
-  Rules (see docs/FINAL-PROJECT.md §3):
-    - Using AI = fine. Hiding it = academic integrity issue.
-    - Missing file = academic integrity issue.
-    - "NO_AI_USED" marker + AI fingerprints in a1.md = academic
-      integrity issue.
-
-  Remove these HTML comments before submission (in either state).
--->
-
-<!-- Template for state 2 (AI used) — copy below the new first line:
-
 # Q2 — AI chat dump
 
-## Session 1 — TODO (tool + model, e.g. "ChatGPT — GPT-4o, 2026-05-20 10:14 UTC")
+AI assistance was used while producing this answer; it is declared here.
 
-**Prompt:**
+## Tool — Claude Code (Anthropic), deployment + writing session, 2026-06-02
 
-```
-TODO
-```
+Claude Code was the agent I used to actually deploy the stack on AWS, and in the
+same session I used it to help assemble this Q2 answer. Specifically, Claude Code:
 
-**Response:**
+- summarized the real deployment we built together (components, ports, AWS
+  resources, networking, secrets, the Casdoor `:8443` and local-Ollama choices)
+  so I could ground Q2 in the actual system;
+- explained the reverse-proxy / TLS concept (Caddy self-hosted vs ALB + ACM
+  managed) when I asked what that section meant;
+- converted the sections I pasted as plain text into proper markdown tables;
+- did light grammar / typo cleanup on my prose (e.g. fixing "maintenant" →
+  "maintenance", "Than" → "Then");
+- flagged a contradiction in my trade-off section (I had written that production
+  "doesn't cost a lot", which conflicted with my own 2/5 cost-efficiency score),
+  and I corrected the wording to match my table.
 
-```
-TODO
-```
+## What is my own work
 
-**What I kept / changed:** TODO
+The architecture decisions are mine: the per-environment mapping and instance
+types (`t3.xlarge`, `c6i.2xlarge`, `r6i.large`, `db.t3.medium`), the choice of
+which components become AWS managed services in prod (RDS, S3, Bedrock, ALB/ACM,
+Secrets Manager, CloudWatch), the Qdrant EBS sizing logic and snapshot/recovery
+policy, the promotion flow (branching, CI/CD, ECR tagging), the data strategy
+(synthetic dev data, anonymized stage data, prod backup/restore), the trade-off
+scores, and the three architecture diagrams (made by me). The synthetic dev CV
+dataset described in the Data strategy section was generated with Claude.
 
--->
+## Note
+
+Where I drafted prose with other assistants (ChatGPT / Claude) outside this
+session, that assistance is covered by this same declaration; the substantive
+engineering choices and the diagrams are my own.
