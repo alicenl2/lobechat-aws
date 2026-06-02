@@ -24,3 +24,7 @@ aws_credentials.yaml
 .vscode/
 *.swp
 config/ssh/
+
+# macOS Finder junk
+.DS_Store
+**/.DS_Store
