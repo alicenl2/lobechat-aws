@@ -72,6 +72,8 @@
 
 - initial LobeChat local stack setup
 
+## final-v0.8.0 (2026-06-02)
+
 ## final-v0.7.0 (2026-06-02)
 
 ### Feat
