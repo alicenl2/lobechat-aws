@@ -6,9 +6,9 @@
 
 | Field | Value |
 |---|---|
-| Actions run URL | ⚠️ **TO FILL IN AFTER PUSH** — e.g. `https://github.com/alicenl2/lobechat-aws/actions/runs/<run-id>` |
-| Commit SHA the run executed against | ⚠️ **TO FILL IN AFTER PUSH** — e.g. `git rev-parse HEAD` on the pushed `final-exam` branch |
-| Result | Green (the four structural gates pass; `hadolint` / `trivy` / `gitleaks` run **warn-only**, so their real findings are visible without failing the run) |
+| Actions run URL | https://github.com/alicenl2/lobechat-aws/actions/runs/26870967473 |
+| Commit SHA the run executed against | `b312dc890402a112a2d4ed0477cf873b3940dfa3` (`b312dc8`) |
+| Result | **Green — all 6 jobs succeeded.** The four structural gates (compose config, yamllint, actionlint, cz check) pass; `hadolint` / `trivy` / `gitleaks` run **warn-only**, so their real findings are visible in the logs without failing the run. |
 
 > The screenshot above is my own run from my repository. The run URL and commit SHA
 > match the submitted commit.
